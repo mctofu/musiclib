@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path"
 	"strings"
 
-	"github.com/mctofu/music-library-grpc/go/mlibgrpc"
 	"github.com/mctofu/musiclib/mlib"
 )
 
@@ -16,9 +16,14 @@ type Library struct {
 	RootPaths []string
 }
 
-func (l *Library) Browse(ctx context.Context, browsePath string, opts mlib.BrowseOptions) ([]*mlibgrpc.BrowseItem, error) {
+func (l *Library) Browse(ctx context.Context, browsePath string, opts mlib.BrowseOptions) ([]*mlib.BrowseItem, error) {
 	if browsePath == "" {
 		return l.rootBrowse(opts.TextFilter)
+	}
+
+	browsePath, err := unwrapURI(browsePath)
+	if err != nil {
+		return nil, err
 	}
 
 	files, err := ioutil.ReadDir(browsePath)
@@ -28,7 +33,7 @@ func (l *Library) Browse(ctx context.Context, browsePath string, opts mlib.Brows
 
 	parentMatch := l.parentMatch(opts.TextFilter, browsePath)
 
-	items := make([]*mlibgrpc.BrowseItem, 0, len(files))
+	items := make([]*mlib.BrowseItem, 0, len(files))
 	for _, file := range files {
 		if !parentMatch {
 			fullPath := path.Join(browsePath, file.Name())
@@ -41,18 +46,22 @@ func (l *Library) Browse(ctx context.Context, browsePath string, opts mlib.Brows
 			}
 		}
 
-		items = append(items, &mlibgrpc.BrowseItem{
+		uri := url.URL{
+			Scheme: "file",
+			Path:   path.Join(browsePath, file.Name()),
+		}
+		items = append(items, &mlib.BrowseItem{
 			Name:   file.Name(),
 			Folder: file.IsDir(),
-			Uri:    path.Join(browsePath, file.Name()),
+			URI:    uri.String(),
 		})
 	}
 
 	return items, nil
 }
 
-func (l *Library) rootBrowse(filter string) ([]*mlibgrpc.BrowseItem, error) {
-	items := make([]*mlibgrpc.BrowseItem, 0, len(l.RootPaths))
+func (l *Library) rootBrowse(filter string) ([]*mlib.BrowseItem, error) {
+	items := make([]*mlib.BrowseItem, 0, len(l.RootPaths))
 	for _, rootPath := range l.RootPaths {
 		file, err := os.Stat(rootPath)
 		if err != nil {
@@ -66,10 +75,14 @@ func (l *Library) rootBrowse(filter string) ([]*mlibgrpc.BrowseItem, error) {
 			continue
 		}
 
-		items = append(items, &mlibgrpc.BrowseItem{
+		uri := url.URL{
+			Scheme: "file",
+			Path:   rootPath,
+		}
+		items = append(items, &mlib.BrowseItem{
 			Name:   file.Name(),
 			Folder: true,
-			Uri:    rootPath,
+			URI:    uri.String(),
 		})
 	}
 
@@ -122,4 +135,13 @@ func fileMatch(filter string, file os.FileInfo, fullPath string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func unwrapURI(path string) (string, error) {
+	uri, err := url.ParseRequestURI(path)
+	if err != nil {
+		return "", err
+	}
+
+	return uri.Path, nil
 }
