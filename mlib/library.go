@@ -90,7 +90,7 @@ func parentMatch(parent *Node, filter string) bool {
 	}
 
 	for p := parent; p != nil; p = p.Parent {
-		if strings.Contains(strings.ToLower(p.Name), filter) {
+		if strings.Contains(p.LowerName, filter) {
 			return true
 		}
 	}
@@ -103,12 +103,12 @@ func nodeMatch(n *Node, filter string) bool {
 		return true
 	}
 
-	if strings.Contains(strings.ToLower(n.Name), filter) {
+	if strings.Contains(n.LowerName, filter) {
 		return true
 	}
 
 	for _, child := range n.Children {
-		if strings.Contains(strings.ToLower(child.Name), filter) {
+		if nodeMatch(child, filter) {
 			return true
 		}
 	}

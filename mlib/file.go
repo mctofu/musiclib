@@ -2,6 +2,7 @@ package mlib
 
 import (
 	"context"
+	"strings"
 )
 
 type FileIndex struct {
@@ -32,9 +33,10 @@ func (f *FileIndex) Index(ctx context.Context, files *Files) error {
 
 func (f *FileIndex) addNode(parent *Node, filePath *PathMeta) *Node {
 	node := &Node{
-		Name:   filePath.Name,
-		URI:    encodeFileURI(filePath.Path),
-		Parent: parent,
+		Name:      filePath.Name,
+		LowerName: strings.ToLower(filePath.Name),
+		URI:       encodeFileURI(filePath.Path),
+		Parent:    parent,
 	}
 
 	for _, child := range filePath.Children {

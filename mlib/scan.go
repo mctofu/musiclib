@@ -1,6 +1,7 @@
 package mlib
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -20,6 +21,15 @@ var tagExts = map[string]struct{}{
 
 type WalkFunc func(dir *PathMeta, file *PathMeta) error
 
+type MediaMetadata interface {
+	Artist() string
+	AlbumArtist() string
+	Album() string
+	Song() string
+	AlbumArtURI() string
+	Track() int
+}
+
 type Files struct {
 	Roots []PathMeta
 }
@@ -37,7 +47,7 @@ func (f *Files) WalkFiles(walkFn WalkFunc) error {
 type PathMeta struct {
 	Name     string
 	Path     string
-	TagMeta  tag.Metadata
+	Metadata MediaMetadata
 	Parent   *PathMeta
 	Children []PathMeta
 }
@@ -99,7 +109,7 @@ func scanDir(name string, dir string) (*PathMeta, error) {
 			if err != nil {
 				return nil, err
 			}
-			if child != nil {
+			if child != nil && len(child.Children) > 0 {
 				child.Parent = meta
 				meta.Children = append(meta.Children, *child)
 			}
@@ -143,8 +153,87 @@ func readFile(filePath string) (*PathMeta, error) {
 		log.Printf("failed to read tag from %s: %v\n", filePath, err)
 	}
 
-	return &PathMeta{
-		Path:    filePath,
-		TagMeta: tagMeta,
-	}, nil
+	meta := &PathMeta{
+		Path: filePath,
+	}
+	meta.Metadata = &mediaMetadataReader{
+		tagData: tagMeta,
+		file:    meta,
+	}
+
+	return meta, nil
+}
+
+const (
+	unknownArtist = "Unknown Artist"
+	unknownAlbum  = "Unknown Album"
+)
+
+type mediaMetadataReader struct {
+	tagData tag.Metadata
+	file    *PathMeta
+}
+
+func (m *mediaMetadataReader) Artist() string {
+	if m.tagData == nil {
+		return unknownArtist
+	}
+	artist := m.tagData.Artist()
+	if artist != "" {
+		return artist
+	}
+	return unknownArtist
+}
+
+func (m *mediaMetadataReader) AlbumArtist() string {
+	if m.tagData == nil {
+		return unknownArtist
+	}
+	artist := m.tagData.AlbumArtist()
+	if artist != "" {
+		return artist
+	}
+	alt := m.tagData.Raw()["album artist"]
+	if alt != nil {
+		artist = fmt.Sprintf("%s", alt)
+	}
+	if artist != "" {
+		return artist
+	}
+
+	return m.Artist()
+}
+
+func (m *mediaMetadataReader) Album() string {
+	if m.tagData == nil {
+		return unknownAlbum
+	}
+	album := m.tagData.Album()
+	if album != "" {
+		return album
+	}
+	return unknownAlbum
+}
+
+func (m *mediaMetadataReader) Song() string {
+	if m.tagData == nil {
+		return m.file.Name
+	}
+	song := m.tagData.Title()
+	if song != "" {
+		return song
+	}
+	return m.file.Name
+}
+
+func (m *mediaMetadataReader) AlbumArtURI() string {
+	return ""
+}
+
+func (m *mediaMetadataReader) Track() int {
+	if m.tagData == nil {
+		return 0
+	}
+	t, _ := m.tagData.Track()
+	return t
 }

@@ -29,14 +29,21 @@ type Index interface {
 }
 
 type Node struct {
-	Name     string
-	URI      string
-	Parent   *Node
-	Children []*Node
+	Name      string
+	LowerName string
+	URI       string
+	Parent    *Node
+	Children  []*Node
 }
 
 func (n *Node) AddChildren(nodes ...*Node) {
 	n.Children = append(n.Children, nodes...)
+}
+
+func nameSort(nodes []*Node) func(i, j int) bool {
+	return func(i, j int) bool {
+		return nodes[i].LowerName < nodes[j].LowerName
+	}
 }
 
 func toBrowseItems(nodes []*Node) []*BrowseItem {
