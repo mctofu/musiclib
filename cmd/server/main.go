@@ -57,7 +57,16 @@ func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibg
 	log.Printf("Received: %v", in)
 	startTime := time.Now()
 
-	browseOpts := mlib.BrowseOptions{TextFilter: strings.ToLower(in.Search)}
+	browseType, err := toMLibBrowseType(in.GetBrowseType())
+	if err != nil {
+		return nil, err
+	}
+
+	browseOpts := mlib.BrowseOptions{
+		TextFilter: strings.ToLower(in.Search),
+		BrowseType: browseType,
+	}
+
 	items, err := s.library.Browse(ctx, in.Path, browseOpts)
 	if err != nil {
 		return nil, err
@@ -74,6 +83,19 @@ func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibg
 	return &mlibgrpc.BrowseResponse{
 		Items: toMLibGRPCItems(items),
 	}, nil
+}
+
+func toMLibBrowseType(t mlibgrpc.BrowseType) (mlib.BrowseType, error) {
+	switch t {
+	case mlibgrpc.BrowseType_BROWSE_TYPE_ALBUM_ARTIST:
+		return mlib.BrowseTypeAlbumArtist, nil
+	case mlibgrpc.BrowseType_BROWSE_TYPE_FOLDER:
+		return mlib.BrowseTypeFile, nil
+	case mlibgrpc.BrowseType_BROWSE_TYPE_UNSPECIFIED:
+		return mlib.BrowseTypeFile, nil
+	default:
+		return "", fmt.Errorf("unsupported browseType: %v", t)
+	}
 }
 
 func toMLibGRPCItems(items []*mlib.BrowseItem) []*mlibgrpc.BrowseItem {

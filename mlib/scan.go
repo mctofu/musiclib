@@ -9,15 +9,24 @@ import (
 	"github.com/dhowden/tag"
 )
 
-type WalkFunc func(dir *FileMeta, file *FileMeta) error
-
-type Files struct {
-	Roots []FileMeta
+var tagExts = map[string]struct{}{
+	".mp3":  {},
+	".m4a":  {},
+	".m4p":  {},
+	".flac": {},
+	".ogg":  {},
+	".wav":  {},
 }
 
-func (f *Files) Walk(walkFn WalkFunc) error {
+type WalkFunc func(dir *PathMeta, file *PathMeta) error
+
+type Files struct {
+	Roots []PathMeta
+}
+
+func (f *Files) WalkFiles(walkFn WalkFunc) error {
 	for _, root := range f.Roots {
-		if err := root.WalkChildren(walkFn); err != nil {
+		if err := root.walkChildren(walkFn); err != nil {
 			return err
 		}
 	}
@@ -25,20 +34,22 @@ func (f *Files) Walk(walkFn WalkFunc) error {
 	return nil
 }
 
-type FileMeta struct {
+type PathMeta struct {
+	Name     string
 	Path     string
 	TagMeta  tag.Metadata
-	Children []FileMeta
+	Parent   *PathMeta
+	Children []PathMeta
 }
 
-func (f *FileMeta) IsDir() bool {
+func (f *PathMeta) IsDir() bool {
 	return len(f.Children) > 0
 }
 
-func (f *FileMeta) WalkChildren(walkFn WalkFunc) error {
+func (f *PathMeta) walkChildren(walkFn WalkFunc) error {
 	for _, child := range f.Children {
 		if child.IsDir() {
-			if err := child.WalkChildren(walkFn); err != nil {
+			if err := child.walkChildren(walkFn); err != nil {
 				return err
 			}
 			continue
@@ -52,9 +63,9 @@ func (f *FileMeta) WalkChildren(walkFn WalkFunc) error {
 }
 
 func ScanRoots(roots []string) (*Files, error) {
-	var rootMetas []FileMeta
+	var rootMetas []PathMeta
 	for _, root := range roots {
-		meta, err := scanDir(root)
+		meta, err := scanDir(path.Base(root), root)
 		if err != nil {
 			return nil, err
 		}
@@ -68,8 +79,9 @@ func ScanRoots(roots []string) (*Files, error) {
 	}, nil
 }
 
-func scanDir(dir string) (*FileMeta, error) {
-	meta := &FileMeta{
+func scanDir(name string, dir string) (*PathMeta, error) {
+	meta := &PathMeta{
+		Name: name,
 		Path: dir,
 	}
 
@@ -83,11 +95,12 @@ func scanDir(dir string) (*FileMeta, error) {
 
 	for _, file := range files {
 		if file.IsDir() {
-			child, err := scanDir(path.Join(dir, file.Name()))
+			child, err := scanDir(file.Name(), path.Join(dir, file.Name()))
 			if err != nil {
 				return nil, err
 			}
 			if child != nil {
+				child.Parent = meta
 				meta.Children = append(meta.Children, *child)
 			}
 
@@ -98,20 +111,27 @@ func scanDir(dir string) (*FileMeta, error) {
 			continue
 		}
 
+		fileExt := path.Ext(file.Name())
+		if _, ok := tagExts[fileExt]; !ok {
+			continue
+		}
+
 		// try to read tags from media files
 		filePath := path.Join(dir, file.Name())
 		child, err := readFile(filePath)
 		if err != nil {
 			return nil, err
 		}
+		child.Name = file.Name()
 
+		child.Parent = meta
 		meta.Children = append(meta.Children, *child)
 	}
 
 	return meta, nil
 }
 
-func readFile(filePath string) (*FileMeta, error) {
+func readFile(filePath string) (*PathMeta, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -123,7 +143,7 @@ func readFile(filePath string) (*FileMeta, error) {
 		log.Printf("failed to read tag from %s: %v\n", filePath, err)
 	}
 
-	return &FileMeta{
+	return &PathMeta{
 		Path:    filePath,
 		TagMeta: tagMeta,
 	}, nil

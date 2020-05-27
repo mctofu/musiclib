@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path"
 )
 
 type ArtistAlbumIndex struct {
@@ -25,7 +24,7 @@ func (a *ArtistAlbumIndex) Index(ctx context.Context, files *Files) error {
 		a.uriLookup = make(map[string]*Node)
 	}
 
-	err := files.Walk(func(dir *FileMeta, file *FileMeta) error {
+	err := files.WalkFiles(func(dir *PathMeta, file *PathMeta) error {
 		m := file.TagMeta
 
 		if m == nil {
@@ -75,7 +74,7 @@ func (a *ArtistAlbumIndex) Index(ctx context.Context, files *Files) error {
 
 		song := m.Title()
 		if song == "" {
-			song = path.Base(file.Path)
+			song = file.Name
 		}
 		songURI := encodeFileURI(file.Path)
 		songNode := &Node{

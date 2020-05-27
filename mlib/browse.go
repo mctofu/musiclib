@@ -1,15 +1,31 @@
 package mlib
 
-import "net/url"
+import (
+	"context"
+	"net/url"
+)
+
+type BrowseType string
+
+const (
+	BrowseTypeFile        BrowseType = "file"
+	BrowseTypeAlbumArtist BrowseType = "albumartist"
+)
 
 type BrowseOptions struct {
 	TextFilter string
+	BrowseType BrowseType
 }
 
 type BrowseItem struct {
 	Name   string
 	URI    string
 	Folder bool
+}
+
+type Index interface {
+	Roots(ctx context.Context) ([]*Node, error)
+	Node(ctx context.Context, uri string) (*Node, error)
 }
 
 type Node struct {

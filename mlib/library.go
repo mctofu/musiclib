@@ -9,6 +9,7 @@ import (
 type Library struct {
 	RootPaths    []string
 	ArtistAlbums *ArtistAlbumIndex
+	Files        *FileIndex
 }
 
 func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
@@ -22,14 +23,23 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 		return nil, fmt.Errorf("failed to index artist/albums: %v", err)
 	}
 
+	filesIndex := &FileIndex{}
+	if err := filesIndex.Index(ctx, files); err != nil {
+		return nil, fmt.Errorf("failed to index files: %v", err)
+	}
+
 	return &Library{
 		RootPaths:    rootPaths,
 		ArtistAlbums: artistAlbums,
+		Files:        filesIndex,
 	}, nil
 }
 
 func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
-	index := l.ArtistAlbums
+	index, err := l.index(opts.BrowseType)
+	if err != nil {
+		return nil, err
+	}
 
 	if browseURI == "" {
 		rootNodes, err := index.Roots(ctx)
@@ -47,6 +57,17 @@ func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptio
 		return nil, nil
 	}
 	return filter(node, node.Children, opts.TextFilter)
+}
+
+func (l *Library) index(t BrowseType) (Index, error) {
+	switch t {
+	case BrowseTypeFile:
+		return l.Files, nil
+	case BrowseTypeAlbumArtist:
+		return l.ArtistAlbums, nil
+	default:
+		return nil, fmt.Errorf("unsupported browse type: %s", t)
+	}
 }
 
 func filter(parent *Node, nodes []*Node, filter string) ([]*BrowseItem, error) {
