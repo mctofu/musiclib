@@ -7,20 +7,20 @@ import (
 	"strings"
 )
 
-type ArtistAlbumIndex struct {
+type AlbumArtistIndex struct {
 	uriLookup map[string]*Node
 	artists   []*Node
 }
 
-func (a *ArtistAlbumIndex) Roots(ctx context.Context) ([]*Node, error) {
+func (a *AlbumArtistIndex) Roots(ctx context.Context) ([]*Node, error) {
 	return a.artists, nil
 }
 
-func (a *ArtistAlbumIndex) Node(ctx context.Context, uri string) (*Node, error) {
+func (a *AlbumArtistIndex) Node(ctx context.Context, uri string) (*Node, error) {
 	return a.uriLookup[uri], nil
 }
 
-func (a *ArtistAlbumIndex) Index(ctx context.Context, files *Files) error {
+func (a *AlbumArtistIndex) Index(ctx context.Context, files *Files) error {
 	if a.uriLookup == nil {
 		a.uriLookup = make(map[string]*Node)
 	}

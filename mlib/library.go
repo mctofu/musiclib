@@ -8,7 +8,7 @@ import (
 
 type Library struct {
 	RootPaths    []string
-	ArtistAlbums *ArtistAlbumIndex
+	AlbumArtists *AlbumArtistIndex
 	Files        *FileIndex
 }
 
@@ -18,7 +18,7 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 		return nil, err
 	}
 
-	artistAlbums := &ArtistAlbumIndex{}
+	artistAlbums := &AlbumArtistIndex{}
 	if err := artistAlbums.Index(ctx, files); err != nil {
 		return nil, fmt.Errorf("failed to index artist/albums: %v", err)
 	}
@@ -30,7 +30,7 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 
 	return &Library{
 		RootPaths:    rootPaths,
-		ArtistAlbums: artistAlbums,
+		AlbumArtists: artistAlbums,
 		Files:        filesIndex,
 	}, nil
 }
@@ -64,7 +64,7 @@ func (l *Library) index(t BrowseType) (Index, error) {
 	case BrowseTypeFile:
 		return l.Files, nil
 	case BrowseTypeAlbumArtist:
-		return l.ArtistAlbums, nil
+		return l.AlbumArtists, nil
 	default:
 		return nil, fmt.Errorf("unsupported browse type: %s", t)
 	}
