@@ -36,6 +36,7 @@ func (f *FileIndex) addNode(parent *Node, filePath *PathMeta) *Node {
 		Name:      filePath.Name,
 		LowerName: strings.ToLower(filePath.Name),
 		URI:       encodeFileURI(filePath.Path),
+		ImageURI:  encodeFileURI(filePath.ImagePath),
 		Parent:    parent,
 	}
 

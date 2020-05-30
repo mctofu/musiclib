@@ -54,6 +54,7 @@ func (a *AlbumArtistIndex) Index(ctx context.Context, files *Files) error {
 				Name:      album,
 				LowerName: strings.ToLower(album),
 				URI:       albumURI,
+				ImageURI:  encodeFileURI(dir.ImagePath),
 				Parent:    artistNode,
 			}
 			artistNode.AddChildren(albumNode)

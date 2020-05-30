@@ -18,9 +18,10 @@ type BrowseOptions struct {
 }
 
 type BrowseItem struct {
-	Name   string
-	URI    string
-	Folder bool
+	Name     string
+	URI      string
+	ImageURI string
+	Folder   bool
 }
 
 type Index interface {
@@ -32,6 +33,7 @@ type Node struct {
 	Name      string
 	LowerName string
 	URI       string
+	ImageURI  string
 	Parent    *Node
 	Children  []*Node
 }
@@ -46,24 +48,12 @@ func nameSort(nodes []*Node) func(i, j int) bool {
 	}
 }
 
-func toBrowseItems(nodes []*Node) []*BrowseItem {
-	results := make([]*BrowseItem, 0, len(nodes))
-	for _, n := range nodes {
-		results = append(results, &BrowseItem{
-			Name:   n.Name,
-			URI:    n.URI,
-			Folder: len(n.Children) > 0,
-		})
-	}
-
-	return results
-}
-
 func toBrowseItem(n *Node) *BrowseItem {
 	return &BrowseItem{
-		Name:   n.Name,
-		URI:    n.URI,
-		Folder: len(n.Children) > 0,
+		Name:     n.Name,
+		URI:      n.URI,
+		ImageURI: n.ImageURI,
+		Folder:   len(n.Children) > 0,
 	}
 }
 
@@ -76,6 +66,10 @@ func encodeArtistAlbumURI(artist, album string) string {
 }
 
 func encodeFileURI(filePath string) string {
+	if filePath == "" {
+		return ""
+	}
+
 	u := &url.URL{
 		Scheme: "file",
 		Path:   filePath,

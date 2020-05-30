@@ -19,6 +19,12 @@ var tagExts = map[string]struct{}{
 	".wav":  {},
 }
 
+var imgExts = map[string]struct{}{
+	".jpg": {},
+	".png": {},
+	".gif": {},
+}
+
 type WalkFunc func(dir *PathMeta, file *PathMeta) error
 
 type MediaMetadata interface {
@@ -45,11 +51,12 @@ func (f *Files) WalkFiles(walkFn WalkFunc) error {
 }
 
 type PathMeta struct {
-	Name     string
-	Path     string
-	Metadata MediaMetadata
-	Parent   *PathMeta
-	Children []PathMeta
+	Name      string
+	Path      string
+	ImagePath string
+	Metadata  MediaMetadata
+	Parent    *PathMeta
+	Children  []PathMeta
 }
 
 func (f *PathMeta) IsDir() bool {
@@ -122,6 +129,10 @@ func scanDir(name string, dir string) (*PathMeta, error) {
 		}
 
 		fileExt := path.Ext(file.Name())
+		if _, ok := imgExts[fileExt]; ok {
+			meta.ImagePath = path.Join(dir, file.Name())
+			continue
+		}
 		if _, ok := tagExts[fileExt]; !ok {
 			continue
 		}

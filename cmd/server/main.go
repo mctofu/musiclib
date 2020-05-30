@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/mctofu/music-library-grpc/go/mlibgrpc"
@@ -13,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var rootPaths = []string{"/mnt/media/music/eac_flac_encoded", "/mnt/media/music/cindy", "/mnt/media/music/purchased"}
+var rootPaths = []string{"/mnt/media/music/eac_flac_encoded", "/mnt/media/music/cindy", "/mnt/media/music/purchased", "/mnt/media/music/free"}
 
 func main() {
 	if err := run(); err != nil {
@@ -22,6 +25,9 @@ func main() {
 }
 
 func run() error {
+	stop := make(chan os.Signal)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
 	lis, err := net.Listen("tcp", "127.0.0.1:8337")
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
@@ -39,6 +45,14 @@ func run() error {
 		&server{
 			library: library,
 		})
+
+	go func() {
+		defer signal.Stop(stop)
+		<-stop
+		log.Println("Stopping")
+		s.GracefulStop()
+		log.Println("Stopped")
+	}()
 
 	log.Println("Starting server")
 	if err := s.Serve(lis); err != nil {
@@ -102,9 +116,10 @@ func toMLibGRPCItems(items []*mlib.BrowseItem) []*mlibgrpc.BrowseItem {
 	result := make([]*mlibgrpc.BrowseItem, 0, len(items))
 	for _, item := range items {
 		result = append(result, &mlibgrpc.BrowseItem{
-			Name:   item.Name,
-			Uri:    item.URI,
-			Folder: item.Folder,
+			Name:     item.Name,
+			Uri:      item.URI,
+			ImageUri: item.ImageURI,
+			Folder:   item.Folder,
 		})
 	}
 
