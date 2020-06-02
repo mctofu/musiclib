@@ -29,6 +29,8 @@ type Index interface {
 	Node(ctx context.Context, uri string) (*Node, error)
 }
 
+type WalkNodeFunc func(n *Node) error
+
 type Node struct {
 	Name      string
 	LowerName string
@@ -40,6 +42,23 @@ type Node struct {
 
 func (n *Node) AddChildren(nodes ...*Node) {
 	n.Children = append(n.Children, nodes...)
+}
+
+func (n *Node) IsFolder() bool {
+	return len(n.Children) > 0
+}
+
+func (n *Node) walkLeaves(walkFn WalkNodeFunc) error {
+	if len(n.Children) == 0 {
+		return walkFn(n)
+	}
+	for _, child := range n.Children {
+		if err := child.walkLeaves(walkFn); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func nameSort(nodes []*Node) func(i, j int) bool {

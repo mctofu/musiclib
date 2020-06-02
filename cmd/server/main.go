@@ -68,7 +68,7 @@ type server struct {
 }
 
 func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibgrpc.BrowseResponse, error) {
-	log.Printf("Received: %v", in)
+	log.Printf("Received Browse: %v", in)
 	startTime := time.Now()
 
 	browseType, err := toMLibBrowseType(in.GetBrowseType())
@@ -77,16 +77,16 @@ func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibg
 	}
 
 	browseOpts := mlib.BrowseOptions{
-		TextFilter: strings.ToLower(in.Search),
+		TextFilter: strings.ToLower(in.GetSearch()),
 		BrowseType: browseType,
 	}
 
-	items, err := s.library.Browse(ctx, in.Path, browseOpts)
+	items, err := s.library.Browse(ctx, in.GetUri(), browseOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("Found %d items in %d ns", len(items), time.Since(startTime).Nanoseconds())
+	log.Printf("Browse: found %d items in %d ns", len(items), time.Since(startTime).Nanoseconds())
 
 	if in.Reverse {
 		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
@@ -96,6 +96,38 @@ func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibg
 
 	return &mlibgrpc.BrowseResponse{
 		Items: toMLibGRPCItems(items),
+	}, nil
+}
+
+func (s *server) Media(ctx context.Context, in *mlibgrpc.MediaRequest) (*mlibgrpc.MediaResponse, error) {
+	log.Printf("Received Media: %v", in)
+	startTime := time.Now()
+
+	browseType, err := toMLibBrowseType(in.GetBrowseType())
+	if err != nil {
+		return nil, err
+	}
+
+	browseOpts := mlib.BrowseOptions{
+		TextFilter: strings.ToLower(in.GetSearch()),
+		BrowseType: browseType,
+	}
+
+	uris, err := s.library.Media(ctx, in.GetUri(), browseOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("Media: found %d uris in %d ns", len(uris), time.Since(startTime).Nanoseconds())
+
+	if in.Reverse {
+		for i, j := 0, len(uris)-1; i < j; i, j = i+1, j-1 {
+			uris[i], uris[j] = uris[j], uris[i]
+		}
+	}
+
+	return &mlibgrpc.MediaResponse{
+		Uris: uris,
 	}, nil
 }
 

@@ -74,6 +74,7 @@ func (a *AlbumArtistIndex) Index(ctx context.Context, files *Files) error {
 			Parent:    albumNode,
 		}
 		albumNode.AddChildren(songNode)
+		a.uriLookup[songURI] = songNode
 
 		return nil
 	})

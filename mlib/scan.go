@@ -13,7 +13,6 @@ import (
 var tagExts = map[string]struct{}{
 	".mp3":  {},
 	".m4a":  {},
-	".m4p":  {},
 	".flac": {},
 	".ogg":  {},
 	".wav":  {},

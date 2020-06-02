@@ -2,6 +2,7 @@ package mlib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -57,6 +58,37 @@ func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptio
 		return nil, nil
 	}
 	return filter(node, node.Children, opts.TextFilter)
+}
+
+func (l *Library) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
+	index, err := l.index(opts.BrowseType)
+	if err != nil {
+		return nil, err
+	}
+
+	if uri == "" {
+		return nil, errors.New("must specify a uri")
+	}
+
+	node, err := index.Node(ctx, uri)
+	if err != nil {
+		return nil, err
+	}
+	if node == nil {
+		return nil, nil
+	}
+
+	// TODO: support filter
+
+	var uris []string
+	if err := node.walkLeaves(func(n *Node) error {
+		uris = append(uris, n.URI)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return uris, nil
 }
 
 func (l *Library) index(t BrowseType) (Index, error) {
