@@ -78,17 +78,18 @@ func (l *Library) Media(ctx context.Context, uri string, opts BrowseOptions) ([]
 		return nil, nil
 	}
 
-	// TODO: support filter
-
-	var uris []string
-	if err := node.walkLeaves(func(n *Node) error {
-		uris = append(uris, n.URI)
-		return nil
-	}); err != nil {
-		return nil, err
+	if parentMatch(node.Parent, opts.TextFilter) {
+		var uris []string
+		if err := node.walkLeaves(func(n *Node) error {
+			uris = append(uris, n.URI)
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		return uris, nil
 	}
 
-	return uris, nil
+	return filterLeaves(node, opts.TextFilter)
 }
 
 func (l *Library) index(t BrowseType) (Index, error) {
@@ -102,13 +103,35 @@ func (l *Library) index(t BrowseType) (Index, error) {
 	}
 }
 
+func filterLeaves(node *Node, filter string) ([]string, error) {
+	var uris []string
+
+	if nodeMatch(node, filter) {
+		if err := node.walkLeaves(func(n *Node) error {
+			uris = append(uris, n.URI)
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	} else {
+		for _, child := range node.Children {
+			childURIs, err := filterLeaves(child, filter)
+			if err != nil {
+				return nil, err
+			}
+			uris = append(uris, childURIs...)
+		}
+	}
+	return uris, nil
+}
+
 func filter(parent *Node, nodes []*Node, filter string) ([]*BrowseItem, error) {
 	var results []*BrowseItem
 
 	parentMatches := parentMatch(parent, filter)
 
 	for _, n := range nodes {
-		if parentMatches || nodeMatch(n, filter) {
+		if parentMatches || nodeOrDescendantMatch(n, filter) {
 			results = append(results, toBrowseItem(n))
 		}
 	}
@@ -130,6 +153,20 @@ func parentMatch(parent *Node, filter string) bool {
 	return false
 }
 
+func nodeOrDescendantMatch(n *Node, filter string) bool {
+	if nodeMatch(n, filter) {
+		return true
+	}
+
+	for _, child := range n.Children {
+		if nodeOrDescendantMatch(child, filter) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func nodeMatch(n *Node, filter string) bool {
 	if filter == "" {
 		return true
@@ -137,12 +174,6 @@ func nodeMatch(n *Node, filter string) bool {
 
 	if strings.Contains(n.LowerName, filter) {
 		return true
-	}
-
-	for _, child := range n.Children {
-		if nodeMatch(child, filter) {
-			return true
-		}
 	}
 
 	return false
