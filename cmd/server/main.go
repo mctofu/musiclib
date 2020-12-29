@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/mctofu/music-library-grpc/go/mlibgrpc"
-	"github.com/mctofu/musiclib/mlib"
+	"github.com/mctofu/musiclib"
 	"google.golang.org/grpc"
 )
 
@@ -52,7 +52,7 @@ func run() error {
 	}
 
 	log.Println("Loading library")
-	library, err := mlib.NewLibrary(context.Background(), rootPaths)
+	library, err := musiclib.NewLibrary(context.Background(), rootPaths)
 	if err != nil {
 		return fmt.Errorf("failed to init library: %v", err)
 	}
@@ -82,19 +82,19 @@ func run() error {
 
 type server struct {
 	mlibgrpc.UnimplementedMusicLibraryServer
-	library *mlib.Library
+	library *musiclib.Library
 }
 
 func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibgrpc.BrowseResponse, error) {
 	log.Printf("Received Browse: %v", in)
 	startTime := time.Now()
 
-	browseType, err := toMLibBrowseType(in.GetBrowseType())
+	browseType, err := toMusicLibBrowseType(in.GetBrowseType())
 	if err != nil {
 		return nil, err
 	}
 
-	browseOpts := mlib.BrowseOptions{
+	browseOpts := musiclib.BrowseOptions{
 		TextFilter: strings.ToLower(in.GetSearch()),
 		BrowseType: browseType,
 	}
@@ -121,12 +121,12 @@ func (s *server) Media(ctx context.Context, in *mlibgrpc.MediaRequest) (*mlibgrp
 	log.Printf("Received Media: %v", in)
 	startTime := time.Now()
 
-	browseType, err := toMLibBrowseType(in.GetBrowseType())
+	browseType, err := toMusicLibBrowseType(in.GetBrowseType())
 	if err != nil {
 		return nil, err
 	}
 
-	browseOpts := mlib.BrowseOptions{
+	browseOpts := musiclib.BrowseOptions{
 		TextFilter: strings.ToLower(in.GetSearch()),
 		BrowseType: browseType,
 	}
@@ -149,26 +149,26 @@ func (s *server) Media(ctx context.Context, in *mlibgrpc.MediaRequest) (*mlibgrp
 	}, nil
 }
 
-func toMLibBrowseType(t mlibgrpc.BrowseType) (mlib.BrowseType, error) {
+func toMusicLibBrowseType(t mlibgrpc.BrowseType) (musiclib.BrowseType, error) {
 	switch t {
 	case mlibgrpc.BrowseType_BROWSE_TYPE_ALBUM_ARTIST:
-		return mlib.BrowseTypeAlbumArtist, nil
+		return musiclib.BrowseTypeAlbumArtist, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_FOLDER:
-		return mlib.BrowseTypeFile, nil
+		return musiclib.BrowseTypeFile, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_GENRE:
-		return mlib.BrowseTypeGenre, nil
+		return musiclib.BrowseTypeGenre, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_YEAR:
-		return mlib.BrowseTypeYear, nil
+		return musiclib.BrowseTypeYear, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_MODIFIED:
-		return mlib.BrowseTypeModified, nil
+		return musiclib.BrowseTypeModified, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_UNSPECIFIED:
-		return mlib.BrowseTypeFile, nil
+		return musiclib.BrowseTypeFile, nil
 	default:
 		return "", fmt.Errorf("unsupported browseType: %v", t)
 	}
 }
 
-func toMLibGRPCItems(items []*mlib.BrowseItem) []*mlibgrpc.BrowseItem {
+func toMLibGRPCItems(items []*musiclib.BrowseItem) []*mlibgrpc.BrowseItem {
 	result := make([]*mlibgrpc.BrowseItem, 0, len(items))
 	for _, item := range items {
 		result = append(result, &mlibgrpc.BrowseItem{

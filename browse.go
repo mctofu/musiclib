@@ -1,4 +1,4 @@
-package mlib
+package musiclib
 
 import (
 	"context"
