@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 
 	"github.com/dhowden/tag"
 )
@@ -33,6 +34,9 @@ type MediaMetadata interface {
 	Song() string
 	AlbumArtURI() string
 	Track() int
+	Genre() string
+	Modified() time.Time
+	Year() int
 }
 
 type Files struct {
@@ -163,12 +167,18 @@ func readFile(filePath string) (*PathMeta, error) {
 		log.Printf("failed to read tag from %s: %v\n", filePath, err)
 	}
 
+	info, err := f.Stat()
+	if err != nil {
+		log.Printf("failed to stat %s: %v\n", filePath, err)
+	}
+
 	meta := &PathMeta{
 		Path: filePath,
 	}
 	meta.Metadata = &mediaMetadataReader{
 		tagData: tagMeta,
 		file:    meta,
+		info:    info,
 	}
 
 	return meta, nil
@@ -177,11 +187,13 @@ func readFile(filePath string) (*PathMeta, error) {
 const (
 	unknownArtist = "Unknown Artist"
 	unknownAlbum  = "Unknown Album"
+	unknownGenre  = "Unknown Genre"
 )
 
 type mediaMetadataReader struct {
 	tagData tag.Metadata
 	file    *PathMeta
+	info    os.FileInfo
 }
 
 func (m *mediaMetadataReader) Artist() string {
@@ -246,4 +258,29 @@ func (m *mediaMetadataReader) Track() int {
 	}
 	t, _ := m.tagData.Track()
 	return t
+}
+
+func (m *mediaMetadataReader) Genre() string {
+	if m.tagData == nil {
+		return unknownGenre
+	}
+	genre := m.tagData.Genre()
+	if genre != "" {
+		return genre
+	}
+	return unknownGenre
+}
+
+func (m *mediaMetadataReader) Year() int {
+	if m.tagData == nil {
+		return 0
+	}
+	return m.tagData.Year()
+}
+
+func (m *mediaMetadataReader) Modified() time.Time {
+	if m.info == nil {
+		return time.Time{}
+	}
+	return m.info.ModTime()
 }

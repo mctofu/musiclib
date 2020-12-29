@@ -155,6 +155,12 @@ func toMLibBrowseType(t mlibgrpc.BrowseType) (mlib.BrowseType, error) {
 		return mlib.BrowseTypeAlbumArtist, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_FOLDER:
 		return mlib.BrowseTypeFile, nil
+	case mlibgrpc.BrowseType_BROWSE_TYPE_GENRE:
+		return mlib.BrowseTypeGenre, nil
+	case mlibgrpc.BrowseType_BROWSE_TYPE_YEAR:
+		return mlib.BrowseTypeYear, nil
+	case mlibgrpc.BrowseType_BROWSE_TYPE_MODIFIED:
+		return mlib.BrowseTypeModified, nil
 	case mlibgrpc.BrowseType_BROWSE_TYPE_UNSPECIFIED:
 		return mlib.BrowseTypeFile, nil
 	default:

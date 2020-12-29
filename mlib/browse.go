@@ -3,13 +3,17 @@ package mlib
 import (
 	"context"
 	"net/url"
+	"strings"
 )
 
 type BrowseType string
 
 const (
 	BrowseTypeFile        BrowseType = "file"
-	BrowseTypeAlbumArtist BrowseType = "albumartist"
+	BrowseTypeAlbumArtist            = "albumartist"
+	BrowseTypeGenre                  = "genre"
+	BrowseTypeYear                   = "year"
+	BrowseTypeModified               = "modified"
 )
 
 type BrowseOptions struct {
@@ -76,12 +80,15 @@ func toBrowseItem(n *Node) *BrowseItem {
 	}
 }
 
-func encodeArtistURI(artist string) string {
-	return "artist:///" + url.PathEscape(artist)
-}
-
-func encodeArtistAlbumURI(artist, album string) string {
-	return "artistalbum:///" + url.PathEscape(artist) + "/" + url.PathEscape(album)
+func encodeCustomURI(scheme string, paths ...string) string {
+	var sb strings.Builder
+	sb.WriteString(scheme)
+	sb.WriteString("://")
+	for _, path := range paths {
+		sb.WriteByte('/')
+		sb.WriteString(url.PathEscape(path))
+	}
+	return sb.String()
 }
 
 func encodeFileURI(filePath string) string {

@@ -4,13 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 )
 
 type Library struct {
 	RootPaths    []string
-	AlbumArtists *AlbumArtistIndex
+	AlbumArtists *MetadataIndex
 	Files        *FileIndex
+	Genres       *MetadataIndex
+	Years        *MetadataIndex
+	ModifyDates  *MetadataIndex
 }
 
 func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
@@ -18,21 +22,45 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Scanned root paths")
 
-	artistAlbums := &AlbumArtistIndex{}
+	artistAlbums := NewArtistAlbumIndex()
 	if err := artistAlbums.Index(ctx, files); err != nil {
 		return nil, fmt.Errorf("failed to index artist/albums: %v", err)
 	}
+	log.Println("Indexed artist/album")
 
 	filesIndex := &FileIndex{}
 	if err := filesIndex.Index(ctx, files); err != nil {
 		return nil, fmt.Errorf("failed to index files: %v", err)
 	}
+	log.Println("Indexed file paths")
+
+	genreIndex := NewGenreIndex()
+	if err := genreIndex.Index(ctx, files); err != nil {
+		return nil, fmt.Errorf("failed to index genres: %v", err)
+	}
+	log.Println("Indexed genres")
+
+	yearIndex := NewYearIndex()
+	if err := yearIndex.Index(ctx, files); err != nil {
+		return nil, fmt.Errorf("failed to index years: %v", err)
+	}
+	log.Println("Indexed years")
+
+	modIndex := NewModifiedAtIndex()
+	if err := modIndex.Index(ctx, files); err != nil {
+		return nil, fmt.Errorf("failed to index modified dates: %v", err)
+	}
+	log.Println("Indexed modified dates")
 
 	return &Library{
 		RootPaths:    rootPaths,
 		AlbumArtists: artistAlbums,
 		Files:        filesIndex,
+		Genres:       genreIndex,
+		Years:        yearIndex,
+		ModifyDates:  modIndex,
 	}, nil
 }
 
@@ -98,6 +126,12 @@ func (l *Library) index(t BrowseType) (Index, error) {
 		return l.Files, nil
 	case BrowseTypeAlbumArtist:
 		return l.AlbumArtists, nil
+	case BrowseTypeGenre:
+		return l.Genres, nil
+	case BrowseTypeYear:
+		return l.Years, nil
+	case BrowseTypeModified:
+		return l.ModifyDates, nil
 	default:
 		return nil, fmt.Errorf("unsupported browse type: %s", t)
 	}
