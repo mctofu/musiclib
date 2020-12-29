@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -15,8 +16,6 @@ import (
 	"github.com/mctofu/musiclib/mlib"
 	"google.golang.org/grpc"
 )
-
-var rootPaths = []string{"/mnt/media/music/eac_flac_encoded", "/mnt/media/music/cindy", "/mnt/media/music/purchased", "/mnt/media/music/free"}
 
 func main() {
 	if err := run(); err != nil {
@@ -28,7 +27,26 @@ func run() error {
 	stop := make(chan os.Signal)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	lis, err := net.Listen("tcp", "127.0.0.1:8337")
+	rootPathSetting, _ := os.LookupEnv("MUSICLIB_ROOT_PATHS")
+	listenAddrSetting, _ := os.LookupEnv("MUSICLIB_LISTEN_ADDR")
+
+	var rootPaths []string
+	if rootPathSetting == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("MUSICLIB_ROOT_PATHS not set and could not detect home: %v", err)
+		}
+		rootPaths = append(rootPaths, path.Join(home, "Music"))
+	} else {
+		rootPaths = strings.Split(rootPathSetting, ",")
+	}
+
+	listenAddr := listenAddrSetting
+	if listenAddr == "" {
+		listenAddr = "127.0.0.1:8337"
+	}
+
+	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
