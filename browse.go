@@ -10,10 +10,10 @@ type BrowseType string
 
 const (
 	BrowseTypeFile        BrowseType = "file"
-	BrowseTypeAlbumArtist            = "albumartist"
-	BrowseTypeGenre                  = "genre"
-	BrowseTypeYear                   = "year"
-	BrowseTypeModified               = "modified"
+	BrowseTypeAlbumArtist BrowseType = "albumartist"
+	BrowseTypeGenre       BrowseType = "genre"
+	BrowseTypeYear        BrowseType = "year"
+	BrowseTypeModified    BrowseType = "modified"
 )
 
 type BrowseOptions struct {
