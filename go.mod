@@ -3,12 +3,10 @@ module github.com/mctofu/musiclib
 go 1.13
 
 require (
-	github.com/dhowden/tag v0.0.0-20200412032933-5d76b8eaae27
-	github.com/mctofu/music-library-grpc v0.0.0
-	golang.org/x/sys v0.0.0-20200409092240-59c9f1ba88fa // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20200410110633-0848e9f44c36 // indirect
-	google.golang.org/grpc v1.30.0
+	github.com/dhowden/tag v0.0.0-20201120070457-d52dcb253c63
+	github.com/mctofu/musiclib-grpc v0.0.1
+	golang.org/x/sys v0.0.0-20201223074533-0d417f636930 // indirect
+	golang.org/x/text v0.3.4 // indirect
+	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d // indirect
+	google.golang.org/grpc v1.34.0
 )
-
-replace github.com/mctofu/music-library-grpc => ../music-library-grpc

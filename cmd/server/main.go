@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mctofu/music-library-grpc/go/mlibgrpc"
 	"github.com/mctofu/musiclib"
+	"github.com/mctofu/musiclib-grpc/go/mlibgrpc"
 	"google.golang.org/grpc"
 )
 
