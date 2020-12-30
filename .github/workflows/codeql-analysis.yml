@@ -2,7 +2,6 @@ name: "Code scanning - action"
 
 on:
   push:
-    branches: [ main ]
   pull_request:
   schedule:
     - cron: '0 15 * * 5'
@@ -20,10 +19,13 @@ jobs:
         # a pull request then we can checkout the head.
         fetch-depth: 2
 
-    # If this run was triggered by a pull request event, then checkout
-    # the head of the pull request instead of the merge commit.
-    - run: git checkout HEAD^2
-      if: ${{ github.event_name == 'pull_request' }}
+    - name: Cache go modules
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-go-modules
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/go.sum') }}
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
