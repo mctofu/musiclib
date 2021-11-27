@@ -52,7 +52,7 @@ func run() error {
 	}
 
 	log.Println("Loading library")
-	library, err := musiclib.NewLibrary(context.Background(), rootPaths)
+	library, err := musiclib.NewIndexedLibrary(context.Background(), rootPaths)
 	if err != nil {
 		return fmt.Errorf("failed to init library: %v", err)
 	}
@@ -80,9 +80,14 @@ func run() error {
 	return nil
 }
 
+type library interface {
+	Browse(ctx context.Context, browseURI string, opts musiclib.BrowseOptions) ([]*musiclib.BrowseItem, error)
+	Media(ctx context.Context, uri string, opts musiclib.BrowseOptions) ([]string, error)
+}
+
 type server struct {
 	mlibgrpc.UnimplementedMusicLibraryServer
-	library *musiclib.Library
+	library library
 }
 
 func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibgrpc.BrowseResponse, error) {

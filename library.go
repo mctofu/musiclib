@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type Library struct {
+type IndexedLibrary struct {
 	RootPaths    []string
 	AlbumArtists *MetadataIndex
 	Files        *FileIndex
@@ -17,7 +17,7 @@ type Library struct {
 	ModifyDates  *MetadataIndex
 }
 
-func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
+func NewIndexedLibrary(ctx context.Context, rootPaths []string) (*IndexedLibrary, error) {
 	files, err := ScanRoots(rootPaths)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 	}
 	log.Println("Indexed modified dates")
 
-	return &Library{
+	return &IndexedLibrary{
 		RootPaths:    rootPaths,
 		AlbumArtists: artistAlbums,
 		Files:        filesIndex,
@@ -64,7 +64,7 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 	}, nil
 }
 
-func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
+func (l *IndexedLibrary) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
 	index, err := l.index(opts.BrowseType)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptio
 	return filter(node, node.Children, opts.TextFilter)
 }
 
-func (l *Library) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
+func (l *IndexedLibrary) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
 	index, err := l.index(opts.BrowseType)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (l *Library) Media(ctx context.Context, uri string, opts BrowseOptions) ([]
 	return filterLeaves(node, opts.TextFilter)
 }
 
-func (l *Library) index(t BrowseType) (Index, error) {
+func (l *IndexedLibrary) index(t BrowseType) (Index, error) {
 	switch t {
 	case BrowseTypeFile:
 		return l.Files, nil
