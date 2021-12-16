@@ -58,9 +58,9 @@ type IndexedLibrary struct {
 }
 
 func NewIndexedLibrary(ctx context.Context, rootPaths []string) (*IndexedLibrary, error) {
-	files, err := ScanRoots(rootPaths)
+	files, err := ScanRoots(ctx, rootPaths)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to scan files: %v", err)
 	}
 	log.Println("Scanned root paths")
 
