@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/mctofu/musiclib"
@@ -24,8 +23,8 @@ func main() {
 }
 
 func run() error {
-	stop := make(chan os.Signal)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	rootPathSetting, _ := os.LookupEnv("MUSICLIB_ROOT_PATHS")
 	listenAddrSetting, _ := os.LookupEnv("MUSICLIB_LISTEN_ADDR")
@@ -53,7 +52,7 @@ func run() error {
 
 	log.Println("Loading library")
 	library := musiclib.NewReloadableLibrary(rootPaths)
-	if err := library.Load(context.Background()); err != nil {
+	if err := library.Load(ctx); err != nil {
 		return fmt.Errorf("failed to init library: %v", err)
 	}
 	log.Println("Loaded library")
@@ -65,8 +64,7 @@ func run() error {
 		})
 
 	go func() {
-		defer signal.Stop(stop)
-		<-stop
+		<-ctx.Done()
 		log.Println("Stopping")
 		s.GracefulStop()
 		log.Println("Stopped")
@@ -74,7 +72,7 @@ func run() error {
 
 	log.Println("Starting server")
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		return fmt.Errorf("failed to serve: %v", err)
 	}
 
 	return nil
