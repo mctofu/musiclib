@@ -6,7 +6,47 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 )
+
+type ReloadableLibrary struct {
+	rootPaths     []string
+	latestLibrary *IndexedLibrary
+	libraryMutex  sync.Mutex
+}
+
+func NewReloadableLibrary(rootPaths []string) *ReloadableLibrary {
+	return &ReloadableLibrary{
+		rootPaths: rootPaths,
+	}
+}
+
+func (r *ReloadableLibrary) Load(ctx context.Context) error {
+	currentLibrary, err := NewIndexedLibrary(ctx, r.rootPaths)
+	if err != nil {
+		return fmt.Errorf("NewIndexedLibrary: %v", err)
+	}
+
+	r.libraryMutex.Lock()
+	defer r.libraryMutex.Unlock()
+	r.latestLibrary = currentLibrary
+
+	return nil
+}
+
+func (r *ReloadableLibrary) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
+	return r.library().Browse(ctx, browseURI, opts)
+}
+
+func (r *ReloadableLibrary) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
+	return r.library().Media(ctx, uri, opts)
+}
+
+func (r *ReloadableLibrary) library() *IndexedLibrary {
+	r.libraryMutex.Lock()
+	defer r.libraryMutex.Unlock()
+	return r.latestLibrary
+}
 
 type IndexedLibrary struct {
 	RootPaths    []string

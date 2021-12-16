@@ -52,8 +52,8 @@ func run() error {
 	}
 
 	log.Println("Loading library")
-	library, err := musiclib.NewIndexedLibrary(context.Background(), rootPaths)
-	if err != nil {
+	library := musiclib.NewReloadableLibrary(rootPaths)
+	if err := library.Load(context.Background()); err != nil {
 		return fmt.Errorf("failed to init library: %v", err)
 	}
 	log.Println("Loaded library")
