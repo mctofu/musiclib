@@ -34,6 +34,10 @@ func (a *MetadataIndex) Node(ctx context.Context, uri string) (*Node, error) {
 
 func (a *MetadataIndex) Index(ctx context.Context, files *Files) error {
 	if err := files.WalkFiles(func(dir *PathMeta, file *PathMeta) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		if file.Metadata == nil {
 			log.Printf("No metadata for: %s\n", file.Path)
 			return nil

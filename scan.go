@@ -1,6 +1,7 @@
 package musiclib
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -82,10 +83,10 @@ func (f *PathMeta) walkChildren(walkFn WalkFunc) error {
 	return nil
 }
 
-func ScanRoots(roots []string) (*Files, error) {
+func ScanRoots(ctx context.Context, roots []string) (*Files, error) {
 	var rootMetas []PathMeta
 	for _, root := range roots {
-		meta, err := scanDir(path.Base(root), root)
+		meta, err := scanDir(ctx, path.Base(root), root)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +100,7 @@ func ScanRoots(roots []string) (*Files, error) {
 	}, nil
 }
 
-func scanDir(name string, dir string) (*PathMeta, error) {
+func scanDir(ctx context.Context, name string, dir string) (*PathMeta, error) {
 	meta := &PathMeta{
 		Name: name,
 		Path: dir,
@@ -114,8 +115,12 @@ func scanDir(name string, dir string) (*PathMeta, error) {
 	}
 
 	for _, file := range files {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
 		if file.IsDir() {
-			child, err := scanDir(file.Name(), path.Join(dir, file.Name()))
+			child, err := scanDir(ctx, file.Name(), path.Join(dir, file.Name()))
 			if err != nil {
 				return nil, err
 			}

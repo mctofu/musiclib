@@ -19,13 +19,16 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatalf("Error occurred: %v", err)
+		log.Fatalf("Error occurred: %v\n", err)
 	}
 }
 
 func run() error {
-	stop := make(chan os.Signal)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	reload := make(chan os.Signal)
+	signal.Notify(reload, syscall.SIGHUP)
 
 	rootPathSetting, _ := os.LookupEnv("MUSICLIB_ROOT_PATHS")
 	listenAddrSetting, _ := os.LookupEnv("MUSICLIB_LISTEN_ADDR")
@@ -52,8 +55,8 @@ func run() error {
 	}
 
 	log.Println("Loading library")
-	library, err := musiclib.NewLibrary(context.Background(), rootPaths)
-	if err != nil {
+	library := musiclib.NewReloadableLibrary(rootPaths)
+	if err := library.Load(ctx); err != nil {
 		return fmt.Errorf("failed to init library: %v", err)
 	}
 	log.Println("Loaded library")
@@ -65,24 +68,40 @@ func run() error {
 		})
 
 	go func() {
-		defer signal.Stop(stop)
-		<-stop
-		log.Println("Stopping")
-		s.GracefulStop()
-		log.Println("Stopped")
+		for {
+			select {
+			case <-reload:
+				log.Println("Reloading library")
+				if err := library.Load(ctx); err != nil {
+					log.Printf("Failed to reload library: %v\n", err)
+				} else {
+					log.Println("Reloaded library")
+				}
+			case <-ctx.Done():
+				log.Println("Stopping")
+				s.GracefulStop()
+				log.Println("Stopped")
+				return
+			}
+		}
 	}()
 
 	log.Println("Starting server")
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		return fmt.Errorf("failed to serve: %v", err)
 	}
 
 	return nil
 }
 
+type library interface {
+	Browse(ctx context.Context, browseURI string, opts musiclib.BrowseOptions) ([]*musiclib.BrowseItem, error)
+	Media(ctx context.Context, uri string, opts musiclib.BrowseOptions) ([]string, error)
+}
+
 type server struct {
 	mlibgrpc.UnimplementedMusicLibraryServer
-	library *musiclib.Library
+	library library
 }
 
 func (s *server) Browse(ctx context.Context, in *mlibgrpc.BrowseRequest) (*mlibgrpc.BrowseResponse, error) {

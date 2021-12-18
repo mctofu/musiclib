@@ -6,9 +6,49 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 )
 
-type Library struct {
+type ReloadableLibrary struct {
+	rootPaths     []string
+	latestLibrary *IndexedLibrary
+	libraryMutex  sync.Mutex
+}
+
+func NewReloadableLibrary(rootPaths []string) *ReloadableLibrary {
+	return &ReloadableLibrary{
+		rootPaths: rootPaths,
+	}
+}
+
+func (r *ReloadableLibrary) Load(ctx context.Context) error {
+	currentLibrary, err := NewIndexedLibrary(ctx, r.rootPaths)
+	if err != nil {
+		return fmt.Errorf("NewIndexedLibrary: %v", err)
+	}
+
+	r.libraryMutex.Lock()
+	defer r.libraryMutex.Unlock()
+	r.latestLibrary = currentLibrary
+
+	return nil
+}
+
+func (r *ReloadableLibrary) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
+	return r.library().Browse(ctx, browseURI, opts)
+}
+
+func (r *ReloadableLibrary) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
+	return r.library().Media(ctx, uri, opts)
+}
+
+func (r *ReloadableLibrary) library() *IndexedLibrary {
+	r.libraryMutex.Lock()
+	defer r.libraryMutex.Unlock()
+	return r.latestLibrary
+}
+
+type IndexedLibrary struct {
 	RootPaths    []string
 	AlbumArtists *MetadataIndex
 	Files        *FileIndex
@@ -17,10 +57,10 @@ type Library struct {
 	ModifyDates  *MetadataIndex
 }
 
-func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
-	files, err := ScanRoots(rootPaths)
+func NewIndexedLibrary(ctx context.Context, rootPaths []string) (*IndexedLibrary, error) {
+	files, err := ScanRoots(ctx, rootPaths)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to scan files: %v", err)
 	}
 	log.Println("Scanned root paths")
 
@@ -54,7 +94,7 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 	}
 	log.Println("Indexed modified dates")
 
-	return &Library{
+	return &IndexedLibrary{
 		RootPaths:    rootPaths,
 		AlbumArtists: artistAlbums,
 		Files:        filesIndex,
@@ -64,7 +104,7 @@ func NewLibrary(ctx context.Context, rootPaths []string) (*Library, error) {
 	}, nil
 }
 
-func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
+func (l *IndexedLibrary) Browse(ctx context.Context, browseURI string, opts BrowseOptions) ([]*BrowseItem, error) {
 	index, err := l.index(opts.BrowseType)
 	if err != nil {
 		return nil, err
@@ -88,7 +128,7 @@ func (l *Library) Browse(ctx context.Context, browseURI string, opts BrowseOptio
 	return filter(node, node.Children, opts.TextFilter)
 }
 
-func (l *Library) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
+func (l *IndexedLibrary) Media(ctx context.Context, uri string, opts BrowseOptions) ([]string, error) {
 	index, err := l.index(opts.BrowseType)
 	if err != nil {
 		return nil, err
@@ -120,7 +160,7 @@ func (l *Library) Media(ctx context.Context, uri string, opts BrowseOptions) ([]
 	return filterLeaves(node, opts.TextFilter)
 }
 
-func (l *Library) index(t BrowseType) (Index, error) {
+func (l *IndexedLibrary) index(t BrowseType) (Index, error) {
 	switch t {
 	case BrowseTypeFile:
 		return l.Files, nil
