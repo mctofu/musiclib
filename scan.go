@@ -13,17 +13,18 @@ import (
 )
 
 var tagExts = map[string]struct{}{
-	".mp3":  {},
-	".m4a":  {},
 	".flac": {},
+	".m4a":  {},
+	".mp3":  {},
 	".ogg":  {},
+	".opus": {},
 	".wav":  {},
 }
 
 var imgExts = map[string]struct{}{
+	".gif": {},
 	".jpg": {},
 	".png": {},
-	".gif": {},
 }
 
 type WalkFunc func(dir *PathMeta, file *PathMeta) error
