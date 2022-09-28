@@ -18,6 +18,7 @@ var tagExts = map[string]struct{}{
 	".flac": {},
 	".ogg":  {},
 	".wav":  {},
+	".opus": {},
 }
 
 var imgExts = map[string]struct{}{
