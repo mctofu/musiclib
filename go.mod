@@ -1,7 +1,8 @@
 module github.com/mctofu/musiclib
 
-go 1.21
-toolchain go1.22.5
+go 1.22
+
+toolchain go1.24.0
 
 require (
 	github.com/dhowden/tag v0.0.0-20220618230019-adf36e896086
